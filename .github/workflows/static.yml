@@ -1,0 +1,1626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advocate Cause List & Case Management System - RBAC Enabled</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js for Graphical Working Status -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- JSPDF & AutoTable for PDF Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: {
+                            50: '#f0f4f8',
+                            100: '#d9e2ec',
+                            700: '#102a43',
+                            800: '#0b1b2b',
+                            900: '#06101e',
+                        },
+                        gold: {
+                            500: '#d4af37',
+                            600: '#b89628',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white; color: black; }
+            .shadow-card { box-shadow: none !important; border: 1px solid #ddd; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Top Header Banner -->
+    <header class="bg-navy-900 text-white shadow-lg sticky top-0 z-30 no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-gold-500 text-navy-900 flex items-center justify-center text-xl font-bold shadow-md">
+                    <i class="fa-solid fa-scale-balanced"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                        <span>Anis Nagori</span>
+                        <span id="roleBadge" class="text-xs bg-gold-500/20 text-gold-500 border border-gold-500/40 px-2 py-0.5 rounded font-normal">
+                            👑 Admin Role
+                        </span>
+                    </h1>
+                    <p class="text-xs text-slate-300 flex items-center gap-3">
+                        <span><i class="fa-solid fa-phone text-gold-500 mr-1"></i> 9887642984, 9887642980</span>
+                        <span><i class="fa-regular fa-calendar-check text-gold-500 mr-1"></i> Cause List Date: <strong class="text-white">26-OCT-2026 (MONDAY)</strong></span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Role Selector & Quick Actions -->
+            <div class="flex flex-wrap items-center gap-2">
+                
+                <!-- Role Switcher Dropdown -->
+                <div class="flex items-center bg-navy-800 border border-slate-700 rounded-lg p-1 text-xs">
+                    <span class="text-slate-400 px-1.5 font-medium"><i class="fa-solid fa-user-shield text-gold-500"></i> Role:</span>
+                    <select id="roleSelector" onchange="switchRole(this.value)" class="bg-navy-900 text-gold-500 font-semibold px-2 py-1 rounded border border-slate-600 focus:outline-none cursor-pointer">
+                        <option value="admin">👑 Admin (Anis Nagori)</option>
+                        <option value="staff">👨‍💼 Staff / Junior Advocate</option>
+                        <option value="client">👤 Client (Litigant View)</option>
+                    </select>
+                </div>
+
+                <!-- Admin & Staff Tools -->
+                <button id="btnAddCaseBtn" onclick="openNewCaseModal()" class="admin-only bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm px-3 py-2 rounded-lg font-medium flex items-center gap-1.5 transition shadow">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Add Case</span>
+                </button>
+                <button id="btnMsgBtn" onclick="openMsgModal()" class="admin-staff bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm px-3 py-2 rounded-lg font-medium flex items-center gap-1.5 transition shadow">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    <span>Send Update</span>
+                </button>
+                <button id="btnPermissionsBtn" onclick="openPermissionsModal()" class="admin-only bg-amber-600 hover:bg-amber-500 text-white text-xs sm:text-sm px-2.5 py-2 rounded-lg font-medium transition shadow" title="Role Permissions & Audit Trail">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </button>
+                
+                <button onclick="exportJSONBackup()" title="Backup JSON Data" class="admin-only bg-slate-700 hover:bg-slate-600 text-white text-xs sm:text-sm px-2.5 py-2 rounded-lg transition shadow">
+                    <i class="fa-solid fa-download text-amber-400"></i>
+                </button>
+                <label class="admin-only bg-slate-700 hover:bg-slate-600 text-white text-xs sm:text-sm px-2.5 py-2 rounded-lg cursor-pointer transition shadow" title="Restore Data JSON">
+                    <i class="fa-solid fa-upload text-sky-400"></i>
+                    <input type="file" id="jsonInput" class="hidden" accept=".json" onchange="importJSONBackup(event)">
+                </label>
+                <button onclick="exportPDF()" class="admin-staff bg-slate-700 hover:bg-slate-600 text-white text-xs sm:text-sm px-3 py-2 rounded-lg font-medium flex items-center gap-1.5 transition shadow">
+                    <i class="fa-solid fa-file-pdf text-red-400"></i>
+                    <span class="hidden sm:inline">Export PDF</span>
+                </button>
+                <button onclick="exportCSV()" class="admin-staff bg-slate-700 hover:bg-slate-600 text-white text-xs sm:text-sm px-3 py-2 rounded-lg font-medium flex items-center gap-1.5 transition shadow">
+                    <i class="fa-solid fa-file-csv text-emerald-400"></i>
+                    <span class="hidden sm:inline">CSV</span>
+                </button>
+                <button onclick="window.print()" class="admin-staff bg-slate-700 hover:bg-slate-600 text-white text-xs sm:text-sm px-3 py-2 rounded-lg font-medium flex items-center gap-1.5 transition shadow">
+                    <i class="fa-solid fa-print"></i>
+                    <span class="hidden sm:inline">Print</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- CLIENT PORTAL VIEW (Visible Only in Client Role) -->
+    <section id="clientPortalView" class="hidden max-w-5xl mx-auto px-4 py-8 w-full space-y-6">
+        <div class="bg-gradient-to-br from-navy-900 to-slate-800 text-white rounded-2xl p-6 shadow-xl border border-gold-500/30 text-center space-y-4">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gold-500/20 text-gold-500 text-3xl mb-2 border border-gold-500/40">
+                <i class="fa-solid fa-landmark"></i>
+            </div>
+            <h2 class="text-2xl font-bold tracking-tight">Client Legal Hearing Status Portal</h2>
+            <p class="text-slate-300 text-sm max-w-xl mx-auto">Welcome to Advocate Anis Nagori's Client Portal. Enter your Case Number or Litigant Name below to inspect your current court stage and upcoming hearing date.</p>
+            
+            <div class="max-w-xl mx-auto relative pt-2">
+                <i class="fa-solid fa-magnifying-glass absolute left-4 top-5 text-slate-400 text-base"></i>
+                <input type="text" id="clientSearchInput" onkeyup="searchClientCases()" placeholder="Search by Case No. (e.g. 166/26) or Party Name..." 
+                       class="w-full pl-11 pr-4 py-3 bg-white text-slate-900 rounded-xl font-medium focus:outline-none focus:ring-4 focus:ring-gold-500/50 shadow-inner">
+            </div>
+        </div>
+
+        <!-- Client Search Results -->
+        <div id="clientResultsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Dynamic Client Cards Output -->
+        </div>
+
+        <div id="clientNoResults" class="bg-white rounded-xl p-8 text-center text-slate-500 border border-slate-200 shadow-sm">
+            <i class="fa-solid fa-folder-open text-4xl text-slate-300 mb-2"></i>
+            <p class="font-semibold text-base text-slate-700">No client cases matched your query</p>
+            <p class="text-xs text-slate-400 mt-1">Please enter your exact case number or name registered in court.</p>
+        </div>
+    </section>
+
+    <!-- MAIN ADMIN / STAFF MANAGEMENT DASHBOARD -->
+    <main id="adminStaffDashboard" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Analytics Overview Cards -->
+        <section class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 no-print">
+            <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition cursor-pointer" onclick="applyPresetFilter('all')">
+                <span class="text-xs text-slate-500 font-medium">Total Listed Cases</span>
+                <div class="flex items-baseline justify-between mt-1">
+                    <span id="stat-total" class="text-2xl font-bold text-navy-900">75</span>
+                    <i class="fa-solid fa-folder-open text-slate-400 text-lg"></i>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-blue-300 transition cursor-pointer" onclick="applyPresetFilter('eve')">
+                <span class="text-xs text-slate-500 font-medium">Evidence (EVE)</span>
+                <div class="flex items-baseline justify-between mt-1">
+                    <span id="stat-eve" class="text-2xl font-bold text-blue-600">0</span>
+                    <i class="fa-solid fa-user-shield text-blue-300 text-lg"></i>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-amber-300 transition cursor-pointer" onclick="applyPresetFilter('bahas')">
+                <span class="text-xs text-slate-500 font-medium">Arguments (BAHAS)</span>
+                <div class="flex items-baseline justify-between mt-1">
+                    <span id="stat-bahas" class="text-2xl font-bold text-amber-600">0</span>
+                    <i class="fa-solid fa-comments text-amber-300 text-lg"></i>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-purple-300 transition cursor-pointer" onclick="applyPresetFilter('charge')">
+                <span class="text-xs text-slate-500 font-medium">Charge Framing</span>
+                <div class="flex items-baseline justify-between mt-1">
+                    <span id="stat-charge" class="text-2xl font-bold text-purple-600">0</span>
+                    <i class="fa-solid fa-gavel text-purple-300 text-lg"></i>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-teal-300 transition cursor-pointer" onclick="applyPresetFilter('talbi')">
+                <span class="text-xs text-slate-500 font-medium">Summons / Talbi</span>
+                <div class="flex items-baseline justify-between mt-1">
+                    <span id="stat-talbi" class="text-2xl font-bold text-teal-600">0</span>
+                    <i class="fa-solid fa-envelope-open-text text-teal-300 text-lg"></i>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-rose-300 transition cursor-pointer" onclick="applyPresetFilter('nodate')">
+                <span class="text-xs text-slate-500 font-medium">Pending Next Date</span>
+                <div class="flex items-baseline justify-between mt-1">
+                    <span id="stat-nodate" class="text-2xl font-bold text-rose-600">0</span>
+                    <i class="fa-solid fa-calendar-xmark text-rose-300 text-lg"></i>
+                </div>
+            </div>
+        </section>
+
+        <!-- DASHBOARD GRAPHICAL & PIVOT SECTION TOGGLE -->
+        <section class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 no-print space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-chart-pie text-navy-700 text-lg"></i>
+                    <h2 class="font-bold text-slate-800 text-base">Working Status Analytics & Dynamic Matrix</h2>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="toggleAnalyticsView('charts')" id="btnTabCharts" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-navy-900 text-white transition">
+                        <i class="fa-solid fa-chart-column mr-1"></i> Status Charts
+                    </button>
+                    <button onclick="toggleAnalyticsView('pivot')" id="btnTabPivot" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
+                        <i class="fa-solid fa-table-cells mr-1"></i> Pivot Matrix
+                    </button>
+                </div>
+            </div>
+
+            <!-- Charts Graphical Tab -->
+            <div id="analyticsChartsView" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="bg-slate-50 rounded-xl p-3 border border-slate-200 flex flex-col items-center">
+                    <h3 class="text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Working Stage Distribution</h3>
+                    <div class="w-full h-48 relative">
+                        <canvas id="stageChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-3 border border-slate-200 flex flex-col items-center">
+                    <h3 class="text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Court-wise Case Distribution</h3>
+                    <div class="w-full h-48 relative">
+                        <canvas id="courtChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-3 border border-slate-200 flex flex-col items-center md:col-span-2 lg:col-span-1">
+                    <h3 class="text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Actionable Urgency Status</h3>
+                    <div class="w-full h-48 relative">
+                        <canvas id="urgencyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic Pivot Table Matrix Tab -->
+            <div id="analyticsPivotView" class="hidden space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-xs">
+                    <div class="flex flex-wrap items-center gap-3">
+                        <div class="flex items-center gap-1.5">
+                            <span class="font-semibold text-slate-600">Rows:</span>
+                            <select id="pivotRowAxis" onchange="renderPivotMatrix()" class="bg-white border border-slate-300 rounded px-2 py-1 focus:ring-2 focus:ring-navy-700">
+                                <option value="court">Court Name</option>
+                                <option value="stage" selected>Stage / Position</option>
+                                <option value="section">IPC / Act Section</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="font-semibold text-slate-600">Columns:</span>
+                            <select id="pivotColAxis" onchange="renderPivotMatrix()" class="bg-white border border-slate-300 rounded px-2 py-1 focus:ring-2 focus:ring-navy-700">
+                                <option value="court" selected>Court Name</option>
+                                <option value="stage">Stage / Position</option>
+                                <option value="hasNextDate">Next Date Status</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="font-semibold text-slate-600">Metric:</span>
+                            <select id="pivotMetric" onchange="renderPivotMatrix()" class="bg-white border border-slate-300 rounded px-2 py-1 focus:ring-2 focus:ring-navy-700">
+                                <option value="count">Count of Cases</option>
+                                <option value="percentage">% Percentage</option>
+                            </select>
+                        </div>
+                    </div>
+                    <span class="text-slate-400 italic text-[11px]"><i class="fa-solid fa-hand-pointer mr-1"></i>Click any matrix cell to shortlist cases!</span>
+                </div>
+
+                <div class="overflow-x-auto custom-scrollbar border border-slate-200 rounded-lg max-h-72">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead id="pivotTableHeader" class="bg-navy-900 text-white sticky top-0">
+                            <!-- Dynamic Matrix Header -->
+                        </thead>
+                        <tbody id="pivotTableBody" class="divide-y divide-slate-200 bg-white font-mono">
+                            <!-- Dynamic Matrix Rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quick Presets Shortlisting Bar -->
+        <section class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm no-print space-y-2">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fa-solid fa-filter text-gold-600"></i> Dynamic Shortlisting Presets
+                </span>
+                <span id="activeShortlistLabel" class="text-xs bg-navy-50 text-navy-700 font-semibold px-2 py-0.5 rounded border border-navy-100">Displaying: All Cases</span>
+            </div>
+            <div class="flex flex-wrap gap-2 text-xs">
+                <button onclick="applyPresetFilter('all')" class="preset-btn px-2.5 py-1 rounded-lg bg-slate-800 text-white font-medium hover:bg-slate-700 transition">
+                    All Cases (75)
+                </button>
+                <button onclick="applyPresetFilter('critical')" class="preset-btn px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 font-medium hover:bg-rose-100 transition">
+                    <i class="fa-solid fa-circle-exclamation mr-1"></i> Critical (Decision/Bahas/Charge)
+                </button>
+                <button onclick="applyPresetFilter('highcourt')" class="preset-btn px-2.5 py-1 rounded-lg bg-purple-50 text-purple-700 border border-purple-200 font-medium hover:bg-purple-100 transition">
+                    <i class="fa-solid fa-building-columns mr-1"></i> High Priority Courts (POCSO/NDPS/DJ)
+                </button>
+                <button onclick="applyPresetFilter('nodate')" class="preset-btn px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 font-medium hover:bg-amber-100 transition">
+                    <i class="fa-solid fa-clock mr-1"></i> Next Date Pending
+                </button>
+                <button onclick="applyPresetFilter('hasdate')" class="preset-btn px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 font-medium hover:bg-emerald-100 transition">
+                    <i class="fa-solid fa-calendar-check mr-1"></i> Next Date Assigned
+                </button>
+                <button onclick="applyPresetFilter('ni')" class="preset-btn px-2.5 py-1 rounded-lg bg-sky-50 text-sky-700 border border-sky-200 font-medium hover:bg-sky-100 transition">
+                    NI 138 Cases
+                </button>
+            </div>
+        </section>
+
+        <!-- Controls: Filters, Search, Display Options -->
+        <section class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm space-y-3 no-print">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+                <!-- Search Input -->
+                <div class="md:col-span-4 relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400"></i>
+                    <input type="text" id="searchInput" placeholder="Search party, accused, section, case no..." 
+                           class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-navy-700"
+                           onkeyup="filterCases()">
+                </div>
+
+                <!-- Court Filter -->
+                <div class="md:col-span-3">
+                    <select id="courtFilter" onchange="filterCases()" class="w-full py-2 px-3 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-navy-700">
+                        <option value="">All Courts (सभी न्यायालय)</option>
+                    </select>
+                </div>
+
+                <!-- Stage Filter -->
+                <div class="md:col-span-3">
+                    <select id="stageFilter" onchange="filterCases()" class="w-full py-2 px-3 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-navy-700">
+                        <option value="">All Stages (सभी चरण)</option>
+                        <option value="EVE">EVE (Evidence)</option>
+                        <option value="BAHAS">BAHAS (Arguments)</option>
+                        <option value="CHARGE">CHARGE</option>
+                        <option value="TALBI">TALBI (Summons)</option>
+                        <option value="APEAL">APPEAL</option>
+                        <option value="RP">RP (Re-Plea/Report)</option>
+                        <option value="DECISION">DECISION</option>
+                        <option value="BAYAN MULJIM">BAYAN MULJIM</option>
+                    </select>
+                </div>
+
+                <!-- Reset Button -->
+                <div class="md:col-span-2 flex gap-2">
+                    <button onclick="resetFilters()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm font-medium py-2 rounded-lg transition flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-rotate-left"></i> Reset
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Cause List Printable Header (Only Visible on Print) -->
+        <div class="hidden print-only mb-6 text-center border-b-2 border-slate-800 pb-4">
+            <h1 class="text-2xl font-bold">ANIS NAGORI ADVOCATE</h1>
+            <p class="text-sm">Mobile: 9887642984, 9887642980</p>
+            <p class="text-base font-semibold mt-2">DAILY CAUSE LIST - 26-OCT-2026 (MONDAY)</p>
+        </div>
+
+        <!-- Table View Section -->
+        <section class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+            <div class="px-4 py-3 bg-slate-100/80 border-b border-slate-200 flex items-center justify-between no-print">
+                <div class="flex items-center gap-2">
+                    <h2 class="font-semibold text-slate-700 text-sm sm:text-base flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-navy-700"></i>
+                        <span>Cause List Records</span>
+                    </h2>
+                    <span id="filtered-count-badge" class="bg-navy-900 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">75 Cases</span>
+                </div>
+                <div class="text-xs text-slate-500">
+                    Click edit button <i class="fa-solid fa-pen-to-square text-blue-600"></i> on any row to edit case details or next date.
+                </div>
+            </div>
+
+            <!-- Table Container -->
+            <div class="overflow-x-auto custom-scrollbar">
+                <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                    <thead>
+                        <tr class="bg-navy-900 text-white font-medium">
+                            <th class="py-3 px-3 w-12 text-center border-b border-navy-800">S.N.</th>
+                            <th class="py-3 px-3 w-28 border-b border-navy-800">Prev Date</th>
+                            <th class="py-3 px-3 w-24 border-b border-navy-800">Court</th>
+                            <th class="py-3 px-3 w-24 border-b border-navy-800">Case No.</th>
+                            <th class="py-3 px-4 border-b border-navy-800 min-w-[260px]">Party VS Case (Accused / Complainant)</th>
+                            <th class="py-3 px-3 w-20 border-b border-navy-800 text-center">Section</th>
+                            <th class="py-3 px-3 w-28 border-b border-navy-800 text-center">Stage</th>
+                            <th class="py-3 px-3 w-28 border-b border-navy-800 text-center font-bold text-gold-500">Next Date</th>
+                            <th class="py-3 px-3 w-24 text-center border-b border-navy-800 no-print">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="causeListTableBody" class="divide-y divide-slate-200 bg-white">
+                        <!-- Dynamic rows inserted by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Empty State -->
+            <div id="noResults" class="hidden py-12 text-center text-slate-500">
+                <i class="fa-solid fa-folder-open text-4xl mb-3 text-slate-300"></i>
+                <p class="text-base font-medium">No matching cases found</p>
+                <p class="text-xs text-slate-400 mt-1">Try clearing your search query or filters.</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 mt-8 py-4 no-print text-center text-xs text-slate-500">
+        <p>© 2026 Office of Advocate Anis Nagori | Court Cause List & Legal Practice Management System</p>
+    </footer>
+
+
+    <!-- MODAL 1: EDIT / UPDATE CASE MODAL -->
+    <div id="editModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden transform transition-all">
+            <div class="bg-navy-900 text-white px-6 py-4 flex items-center justify-between">
+                <h3 class="font-bold text-lg flex items-center gap-2">
+                    <i class="fa-solid fa-pen-to-square text-gold-500"></i>
+                    <span id="modalTitle">Edit Case Record</span>
+                </h3>
+                <button onclick="closeEditModal()" class="text-slate-400 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            
+            <form id="editForm" onsubmit="saveCase(event)" class="p-6 space-y-4">
+                <input type="hidden" id="editIndex">
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">S. No.</label>
+                        <input type="number" id="editSn" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-navy-700">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Previous Date</label>
+                        <input type="text" id="editPrevDate" placeholder="DD/MM/YYYY" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-navy-700">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Court Name</label>
+                        <input type="text" id="editCourt" required placeholder="e.g. DJ, ADJ-1, ACJM-1" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-navy-700">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Case No.</label>
+                        <input type="text" id="editCaseNo" placeholder="e.g. 166/26" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-navy-700">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Party VS Case Title / Accused Name</label>
+                    <textarea id="editParty" required rows="2" placeholder="STATE V/S PARTY NAME" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-navy-700"></textarea>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Section (IPC / CrPC / IPC 138)</label>
+                        <input type="text" id="editSection" placeholder="e.g. 302, 307, 138" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-navy-700">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Position / Stage</label>
+                        <select id="editStage" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-navy-700">
+                            <option value="EVE">EVE (Evidence)</option>
+                            <option value="BAHAS">BAHAS (Arguments)</option>
+                            <option value="CHARGE">CHARGE</option>
+                            <option value="TALBI">TALBI</option>
+                            <option value="APEAL">APPEAL</option>
+                            <option value="RP">RP (Report/Plea)</option>
+                            <option value="DECISION">DECISION</option>
+                            <option value="BAYAN MULJIM">BAYAN MULJIM</option>
+                            <option value="ISTAGASA">ISTAGASA</option>
+                            <option value="TALAK">TALAK</option>
+                            <option value="CLAIM">CLAIM</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="block text-xs font-semibold text-emerald-700">Next Hearing Date (आगामी तारीख)</label>
+                        <button type="button" onclick="autoCalculateNextDate()" class="text-[11px] text-indigo-600 hover:underline">
+                            <i class="fa-solid fa-wand-magic-sparkles mr-1"></i>+14 Days Quick Set
+                        </button>
+                    </div>
+                    <input type="text" id="editNextDate" placeholder="e.g. 10/11/2026" class="w-full px-3 py-2 border border-emerald-400 bg-emerald-50 rounded-lg text-sm font-semibold text-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-600">
+                </div>
+
+                <div class="pt-2 flex items-center justify-between gap-3">
+                    <button type="button" onclick="deleteCaseFromModal()" id="btnDeleteCase" class="admin-only bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-semibold px-3 py-2 rounded-lg transition">
+                        <i class="fa-solid fa-trash mr-1"></i> Delete Entry
+                    </button>
+                    <div class="flex gap-2">
+                        <button type="button" onclick="closeEditModal()" class="px-4 py-2 border border-slate-300 text-slate-600 hover:bg-slate-100 rounded-lg text-sm font-medium transition">Cancel</button>
+                        <button type="submit" class="px-5 py-2 bg-navy-900 hover:bg-navy-800 text-white rounded-lg text-sm font-medium transition shadow">Save Changes</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- MODAL 2: MESSAGE & CLIENT NOTIFICATION CENTER -->
+    <div id="msgModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="bg-indigo-900 text-white px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-paper-plane text-indigo-300 text-lg"></i>
+                    <div>
+                        <h3 class="font-bold text-base sm:text-lg">Client Legal Messaging Center</h3>
+                        <p class="text-xs text-indigo-200">Send hearing alerts, WhatsApp messages, or SMS</p>
+                    </div>
+                </div>
+                <button onclick="closeMsgModal()" class="text-indigo-200 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <div class="p-6 overflow-y-auto space-y-5 custom-scrollbar">
+                
+                <!-- Quick Selection of Case -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Select Case for Pre-filling</label>
+                    <select id="msgCaseSelect" onchange="autoFillMsgTemplate()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600">
+                        <option value="">-- Choose a Case from Today's List --</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Client Mobile / WhatsApp Number</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2.5 text-xs text-slate-400">+91</span>
+                            <input type="text" id="msgMobile" placeholder="9876543210" class="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Message Template</label>
+                        <select id="msgTemplateSelect" onchange="applyMsgTemplate()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600">
+                            <option value="next_date">Next Hearing Reminder (अगली पेशी सूचना)</option>
+                            <option value="evidence_req">Evidence / Witness Reminder (गवाही हेतु उपस्थिति)</option>
+                            <option value="urgent_call">Urgent Meeting at Office (आवश्यक मीटिंग)</option>
+                            <option value="custom">Custom Message</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Message Text Preview (Hindi/English)</label>
+                    <textarea id="msgBody" rows="5" class="w-full p-3 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 font-sans"></textarea>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-200">
+                    <button onclick="copyMsgToClipboard()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium px-3 py-2 rounded-lg transition flex items-center gap-1.5">
+                        <i class="fa-regular fa-copy"></i> Copy Text
+                    </button>
+
+                    <div class="flex gap-2">
+                        <button onclick="sendWhatsApp()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-lg transition flex items-center gap-2 shadow">
+                            <i class="fa-brands fa-whatsapp text-lg"></i> Send WhatsApp
+                        </button>
+                        <button onclick="sendSMS()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-lg transition flex items-center gap-2 shadow">
+                            <i class="fa-solid fa-comment-sms"></i> Send SMS
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Notification Log History -->
+                <div class="pt-4 border-t border-slate-200">
+                    <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Recent Sent Messages Log</h4>
+                    <div id="msgLogContainer" class="bg-slate-50 rounded-lg p-3 text-xs text-slate-600 space-y-2 max-h-32 overflow-y-auto border border-slate-200">
+                        <p class="text-slate-400 italic">No messages sent in this session yet.</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
+    <!-- MODAL 3: ADMIN PERMISSIONS & AUDIT LOG MODAL -->
+    <div id="permissionsModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="bg-amber-700 text-white px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-shield-halved text-amber-200 text-xl"></i>
+                    <div>
+                        <h3 class="font-bold text-base sm:text-lg">Role-Based Access Control (RBAC) & Audit Log</h3>
+                        <p class="text-xs text-amber-100">Configured permissions per role & recent staff modifications</p>
+                    </div>
+                </div>
+                <button onclick="closePermissionsModal()" class="text-amber-200 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <div class="p-6 overflow-y-auto space-y-6 custom-scrollbar text-xs">
+                
+                <!-- Permissions Table Matrix -->
+                <div>
+                    <h4 class="font-bold text-slate-800 text-sm mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-table-list text-amber-600"></i>
+                        <span>System Access Matrix</span>
+                    </h4>
+                    <div class="overflow-x-auto border border-slate-200 rounded-lg">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
+                                    <th class="p-2.5">Feature / Action</th>
+                                    <th class="p-2.5 text-center">👑 Admin Role</th>
+                                    <th class="p-2.5 text-center">👨‍💼 Staff Role</th>
+                                    <th class="p-2.5 text-center">👤 Client Role</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200 bg-white">
+                                <tr>
+                                    <td class="p-2.5 font-medium text-slate-800">View Full Cause List & Analytics</td>
+                                    <td class="p-2.5 text-center text-emerald-600 font-bold"><i class="fa-solid fa-check"></i> Full</td>
+                                    <td class="p-2.5 text-center text-emerald-600 font-bold"><i class="fa-solid fa-check"></i> Full</td>
+                                    <td class="p-2.5 text-center text-rose-500 font-medium"><i class="fa-solid fa-xmark"></i> Own Case Only</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-2.5 font-medium text-slate-800">Add New Case Record</td>
+                                    <td class="p-2.5 text-center text-emerald-600 font-bold"><i class="fa-solid fa-check"></i> Allowed</td>
+                                    <td class="p-2.5 text-center text-rose-500 font-medium"><i class="fa-solid fa-xmark"></i> Disabled</td>
+                                    <td class="p-2.5 text-center text-rose-500 font-medium"><i class="fa-solid fa-xmark"></i> Disabled</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-2.5 font-medium text-slate-800">Edit Stage & Next Hearing Date</td>
+                                    <td class="p-2.5 text-center text-emerald-600 font-bold"><i class="fa-solid fa-check"></i> Allowed</td>
+                                    <td class="p-2.5 text-center text-emerald-600 font-bold"><i class="fa-solid fa-check"></i> Allowed</td>
+                                    <td class="p-2.5 text-center text-rose-500 font-medium"><i class="fa-solid fa-xmark"></i> Read-Only</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-2.5 font-medium text-slate-800">Delete Case Record</td>
+                                    <td class="p-2.5 text-center text-emerald-600 font-bold"><i class="fa-solid fa-check"></i> Allowed</td>
+                                    <td class="p-2.5 text-center text-rose-500 font-medium"><i class="fa-solid fa-xmark"></i> Restricted</td>
+                                    <td class="p-2.5 text-center text-rose-500 font-medium"><i class="fa-solid fa-xmark"></i> Restricted</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-2.5 font-medium text-slate-800">Export / Import Backup Data</td>
+                                    <td class="p-2.5 text-center text-emerald-600 font-bold"><i class="fa-solid fa-check"></i> Allowed</td>
+                                    <td class="p-2.5 text-center text-amber-600 font-medium">Export Only</td>
+                                    <td class="p-2.5 text-center text-rose-500 font-medium"><i class="fa-solid fa-xmark"></i> Disabled</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-2.5 font-medium text-slate-800">Send WhatsApp / SMS Updates</td>
+                                    <td class="p-2.5 text-center text-emerald-600 font-bold"><i class="fa-solid fa-check"></i> Allowed</td>
+                                    <td class="p-2.5 text-center text-emerald-600 font-bold"><i class="fa-solid fa-check"></i> Allowed</td>
+                                    <td class="p-2.5 text-center text-indigo-600 font-medium">Request Link Only</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- System Audit Log Trail -->
+                <div>
+                    <h4 class="font-bold text-slate-800 text-sm mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left text-amber-600"></i>
+                        <span>System Audit Log & Activity History</span>
+                    </h4>
+                    <div id="auditLogContainer" class="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-2 max-h-48 overflow-y-auto font-mono text-[11px]">
+                        <p class="text-slate-400 italic">No modifications logged in this session yet.</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // PDF Parsed Data Array (75 Complete Cases)
+        const initialCaseData = [
+            { sn: 1, prevDate: "12/10/2026", court: "DJ", caseNo: "166/26", party: "STATE V/S MUKUT GOCHER (DHARMENDRA MEENA)", section: "103(1)", stage: "CHARGE", nextDate: "" },
+            { sn: 2, prevDate: "17/10/2026", court: "DJ", caseNo: "-", party: "DHARMENDRA MEENA V/S STATE", section: "483", stage: "BAHAS", nextDate: "" },
+            { sn: 3, prevDate: "23/9/2026", court: "ADJ-1", caseNo: "-", party: "STATE V/S YOGESH (SAMEER URF ICCHI)", section: "308", stage: "EVE", nextDate: "" },
+            { sn: 4, prevDate: "19/9/2026", court: "ADJ-1", caseNo: "-", party: "KAMALI BAI V/S STATE (SIRAJ)", section: "-", stage: "APEAL", nextDate: "" },
+            { sn: 5, prevDate: "17/8/2026", court: "ADJ-1", caseNo: "-", party: "SHAHIL URF KERI V/S STATE", section: "-", stage: "APEAL", nextDate: "" },
+            { sn: 6, prevDate: "3/10/2026", court: "ADJ-1", caseNo: "-", party: "STATE V/S DEEPAK PRAJAPATI (AMAN URF LALA)", section: "307", stage: "EVE", nextDate: "" },
+            { sn: 7, prevDate: "9/10/2026", court: "ADJ-1", caseNo: "150/23", party: "STATE V/S JUBER URF JUBBI", section: "3/25(6)", stage: "EVE", nextDate: "" },
+            { sn: 8, prevDate: "12/10/2026", court: "ADJ-1", caseNo: "-", party: "STATE V/S ADNAAN VASIM", section: "302", stage: "EVE", nextDate: "" },
+            { sn: 9, prevDate: "12/10/2026", court: "ADJ-1", caseNo: "173/26", party: "STATE V/S KAJU URF AJAUDDIN", section: "140(1)", stage: "CHARGE", nextDate: "" },
+            { sn: 10, prevDate: "12/10/2026", court: "ADJ-1", caseNo: "55/26", party: "STATE (COMP) V/S ILMUDDIN URF CHANDI ETC,", section: "302", stage: "EVE", nextDate: "" },
+            { sn: 11, prevDate: "8/9/2026", court: "ADJ-2", caseNo: "72/26", party: "STATE V/S SHAHID URF KALIYA", section: "307", stage: "EVE", nextDate: "" },
+            { sn: 12, prevDate: "10/9/2026", court: "ADJ-3", caseNo: "-", party: "STATE V/S SONU HADDI ARHSAD", section: "302", stage: "EVE", nextDate: "" },
+            { sn: 13, prevDate: "11/9/2026", court: "ADJ-3", caseNo: "-", party: "STATE V/S SHAHADT URF BAHYYU (SHAHJAD)", section: "307", stage: "EVE", nextDate: "" },
+            { sn: 14, prevDate: "16/9/2026", court: "ADJ-3", caseNo: "307/23", party: "STATE V/S SHOHAIL KHAN HOSIM KEKD A", section: "307", stage: "EVE", nextDate: "" },
+            { sn: 15, prevDate: "5/10/2026", court: "ADJ-3", caseNo: "-", party: "MADAN MOHAN V/S STATE", section: "-", stage: "APEAL", nextDate: "" },
+            { sn: 16, prevDate: "12/10/2026", court: "ADJ-3", caseNo: "-", party: "STATE V/S AJAY TUFFAN SINGH", section: "302", stage: "BAHAS", nextDate: "" },
+            { sn: 17, prevDate: "12/10/2026", court: "ADJ-3", caseNo: "-", party: "STATE V/S VISHAL (DEELIP CHANDA GUJJAR)", section: "302", stage: "EVE", nextDate: "" },
+            { sn: 18, prevDate: "7/9/2026", court: "ADJ-4", caseNo: "-", party: "STATE V/S SHOKIN ETC.", section: "307", stage: "EVE", nextDate: "" },
+            { sn: 19, prevDate: "9/10/2026", court: "ADJ-4", caseNo: "-", party: "STATE V/S MANISH URF BADMASH SAMEER URF GANJA", section: "307", stage: "EVE", nextDate: "" },
+            { sn: 20, prevDate: "13/10/2026", court: "ADJ-5", caseNo: "364/24", party: "STATE V/S SHOYAB SHAHJAD SALMAAN", section: "307", stage: "EVE", nextDate: "" },
+            { sn: 21, prevDate: "2/9/2026", court: "ADJ-6", caseNo: "-", party: "AARIF URF PANDU V/S STATE", section: "-", stage: "APEAL", nextDate: "" },
+            { sn: 22, prevDate: "15/9/2026", court: "ADJ-6", caseNo: "232/22", party: "STATE V/S SUNIL PANCHAL (SONU URF TOSIF VIAJY URF KALLU SAMEER URF CHILLI)", section: "307", stage: "EVE", nextDate: "" },
+            { sn: 23, prevDate: "16/9/2026", court: "ADJ-6", caseNo: "-", party: "STATE V/S AJRUDDIN URF AJJU", section: "307", stage: "EVE", nextDate: "" },
+            { sn: 24, prevDate: "30/9/2026", court: "ADJ-6", caseNo: "-", party: "STATE V/S ILMUDDIN (VINOD CAMMANDO)", section: "399, 402", stage: "EVE", nextDate: "" },
+            { sn: 25, prevDate: "6/10/2026", court: "ADJ-6", caseNo: "-", party: "STATE V/S BUNTY URF AARIF DINESH", section: "384", stage: "EVE", nextDate: "" },
+            { sn: 26, prevDate: "12/10/2026", court: "ADJ-6", caseNo: "430/24", party: "STATE V/S IMRAN DANISH ASLAAM", section: "384", stage: "EVE", nextDate: "" },
+            { sn: 27, prevDate: "17/10/2026", court: "ADJ-6", caseNo: "244/26", party: "RAJENDRA URF RAJU V/S STATE", section: "483", stage: "BAHAS", nextDate: "" },
+            { sn: 28, prevDate: "17/10/2026", court: "ADJ-6", caseNo: "28/26", party: "STATE V/S FEZAN", section: "3/25", stage: "CHARGE", nextDate: "" },
+            { sn: 29, prevDate: "15/10/2026", court: "POCSO-3", caseNo: "-", party: "STATE V/S DHARMENDRA SINGH OOD", section: "376", stage: "EVE", nextDate: "" },
+            { sn: 30, prevDate: "7/10/2026", court: "POCSO-4", caseNo: "-", party: "STATE V/S AAYUSH CHOUDHARY", section: "376", stage: "DECISION", nextDate: "" },
+            { sn: 31, prevDate: "13/10/2026", court: "POCSO-4", caseNo: "-", party: "AARSHIYAAN URF HASAN V/S STATE", section: "101", stage: "APEAL", nextDate: "" },
+            { sn: 32, prevDate: "15/10/2026", court: "POCSO-4", caseNo: "-", party: "STATE V/S DINU KALIYA", section: "376", stage: "BAYAN MULJIM", nextDate: "" },
+            { sn: 33, prevDate: "19/6/2026", court: "SC/ST", caseNo: "21/23", party: "STATE V/S CHIRAG (SHAHRUKH URF CHAND MOHD.)", section: "307", stage: "EVE", nextDate: "" },
+            { sn: 34, prevDate: "5/10/2026", court: "SC/ST", caseNo: "-", party: "STATE V/S AABID MOHD.", section: "109(1)", stage: "EVE", nextDate: "" },
+            { sn: 35, prevDate: "31/7/2026", court: "NDPS", caseNo: "118/25", party: "STATE V/S ABDUL HAMID DEVA", section: "8/20", stage: "CHARGE", nextDate: "" },
+            { sn: 36, prevDate: "14/8/2026", court: "NDPS", caseNo: "47/22", party: "STATE V/S KANHIYALAL (MAJOOR ALI)", section: "8/20", stage: "EVE", nextDate: "" },
+            { sn: 37, prevDate: "14/8/2026", court: "NDPS", caseNo: "30/26", party: "STATE V/S ABDUL RASHID ALTAMAS ETC.", section: "8/20", stage: "EVE", nextDate: "" },
+            { sn: 38, prevDate: "7/9/2026", court: "NDPS", caseNo: "344/23", party: "STATE V/S SATTU RAM", section: "8/20", stage: "RP", nextDate: "" },
+            { sn: 39, prevDate: "13/10/2026", court: "W.A.-2", caseNo: "-", party: "STATE V/S AMAN URF LALA (AAJAM SHOHAIL FEZAN)", section: "399, 402", stage: "EVE", nextDate: "" },
+            { sn: 40, prevDate: "8/10/2026", court: "CJM", caseNo: "-", party: "VIMAL V/S ROHIT", section: "420", stage: "TALBI", nextDate: "" },
+            { sn: 41, prevDate: "12/10/2026", court: "ACJM-1", caseNo: "243/26", party: "STATE V/S RAMAN SINGH CHOUHAN", section: "109(1)", stage: "RP", nextDate: "" },
+            { sn: 42, prevDate: "8/9/2026", court: "ACJM-2", caseNo: "-", party: "STATE V/S TALIM AJHAR SHOKIN ROBIN", section: "420", stage: "EVE", nextDate: "" },
+            { sn: 43, prevDate: "13/10/2026", court: "ACJM-3", caseNo: "6774/16", party: "STATE V/S MANISH URF BHOLA NAVEEN URF OBAMA", section: "392", stage: "EVE", nextDate: "" },
+            { sn: 44, prevDate: "6/7/2026", court: "ACJM-3", caseNo: "1190/23", party: "STATE V/S VISHAL", section: "380", stage: "TALBI", nextDate: "" },
+            { sn: 45, prevDate: "28/7/2026", court: "ACJM-3", caseNo: "98/25", party: "STATE V/S AJAY", section: "4/25", stage: "TALBI", nextDate: "" },
+            { sn: 46, prevDate: "14/10/2026", court: "ACJM-4", caseNo: "24/25", party: "STATE V/S RAHIL MODI ETC.", section: "318(4)", stage: "CHARGE", nextDate: "" },
+            { sn: 47, prevDate: "12/10/2026", court: "ACJM-5", caseNo: "343/24", party: "STATE V/S ASLAAM SHERKHAN DANISH", section: "384", stage: "EVE", nextDate: "" },
+            { sn: 48, prevDate: "4/6/2026", court: "M(N)", caseNo: "-", party: "STATE V/S MANOJ KUMAR SUMAN", section: "279", stage: "EVE", nextDate: "" },
+            { sn: 49, prevDate: "9/10/2026", court: "2(N)", caseNo: "-", party: "STATE V/S LOVISH KHAN", section: "4/25", stage: "TALBI", nextDate: "" },
+            { sn: 50, prevDate: "3/10/2026", court: "2(N)", caseNo: "-", party: "STATE V/S AFJAAL", section: "4/25", stage: "EVE", nextDate: "" },
+            { sn: 51, prevDate: "21/7/2026", court: "2(N)", caseNo: "941/24", party: "STATE V/S JAHID URF NOORA", section: "4/25", stage: "EVE", nextDate: "" },
+            { sn: 52, prevDate: "1/8/2026", court: "2(N)", caseNo: "3872/22", party: "STATE V/S SHOYAL URF SHANU BACCHA", section: "392", stage: "EVE", nextDate: "" },
+            { sn: 53, prevDate: "18/9/2026", court: "3(N)", caseNo: "75/26", party: "STATE V/S JAVED BEG", section: "498", stage: "EVE", nextDate: "" },
+            { sn: 54, prevDate: "10/7/2026", court: "4(N)", caseNo: "166/24", party: "STATE V/S SAWAN (LAXMAN SINGH)", section: "323", stage: "EVE", nextDate: "" },
+            { sn: 55, prevDate: "14/8/2026", court: "4(N)", caseNo: "-", party: "STATE V/S PAPPU (TALAB GAAV)", section: "379", stage: "EVE", nextDate: "" },
+            { sn: 56, prevDate: "13/10/2026", court: "2(S)", caseNo: "244/26", party: "STATE V/S RAJENDRA URF RAJU", section: "4/5", stage: "RP", nextDate: "" },
+            { sn: 57, prevDate: "17/9/2026", court: "5(S)", caseNo: "-", party: "STATE V/S REHANUDDIN", section: "19/54", stage: "RP", nextDate: "" },
+            { sn: 58, prevDate: "24/8/2026", court: "5(S)", caseNo: "12971/23", party: "STATE V/S HASRUDDIN EZAZ NOSHAD", section: "323", stage: "EVE", nextDate: "" },
+            { sn: 59, prevDate: "3/9/2026", court: "5(S)", caseNo: "369/24", party: "STATE V/S MOHIT MEENA", section: "4/25", stage: "TALBI", nextDate: "" },
+            { sn: 60, prevDate: "6/10/2026", court: "5(S)", caseNo: "-", party: "ASHOK NAGAR V/S MEENA NAGAR", section: "-", stage: "ISTAGASA", nextDate: "" },
+            { sn: 61, prevDate: "29/8/2026", court: "PCPNDT", caseNo: "-", party: "STATE V/S RAJA", section: "4/25", stage: "TALBI", nextDate: "" },
+            { sn: 62, prevDate: "13/10/2026", court: "PCPNDT", caseNo: "50/21", party: "STATE V/S SHADIK URF JAYAD", section: "380", stage: "TALBI", nextDate: "" },
+            { sn: 63, prevDate: "13/10/2026", court: "PCPNDT", caseNo: "-", party: "STATE V/S SHADIK URF JAYAD", section: "379", stage: "EVE", nextDate: "" },
+            { sn: 64, prevDate: "10/8/2026", court: "PCPNDT", caseNo: "-", party: "STATE V/S ARBAAZ", section: "19/54", stage: "EVE", nextDate: "" },
+            { sn: 65, prevDate: "17/10/2026", court: "NI-1", caseNo: "-", party: "AABID ALI V/S SHAKIL", section: "138", stage: "EVE", nextDate: "" },
+            { sn: 66, prevDate: "3/9/2026", court: "NI-2", caseNo: "-", party: "ABDUL MALIK V/S SHAMIM", section: "138", stage: "BAHAS", nextDate: "" },
+            { sn: 67, prevDate: "15/9/2026", court: "NI-2", caseNo: "-", party: "ABDUL VAHID V/S MOHD. AJHAR", section: "138", stage: "TALBI", nextDate: "" },
+            { sn: 68, prevDate: "31/7/2026", court: "NI-4", caseNo: "-", party: "SHIVNATH V/S BHAVNEET", section: "138", stage: "EVE", nextDate: "" },
+            { sn: 69, prevDate: "31/7/2026", court: "NI-4", caseNo: "-", party: "SHIVNATH V/S BHAVNEET", section: "138", stage: "EVE", nextDate: "" },
+            { sn: 70, prevDate: "9/9/2026", court: "NI-4", caseNo: "-", party: "RAM GOPAL V/S MUKESH NAGAR", section: "138", stage: "EVE", nextDate: "" },
+            { sn: 71, prevDate: "13/10/2026", court: "NI-4", caseNo: "51419/19", party: "SANJAY V/S KAPIL GAUTAM", section: "138", stage: "EVE", nextDate: "" },
+            { sn: 72, prevDate: "17/10/2026", court: "F.C.-2", caseNo: "165/25", party: "PRIYANKA V/S RAVINDRA SINGH", section: "-", stage: "TALAK", nextDate: "" },
+            { sn: 73, prevDate: "3/9/2026", court: "F.C.-3", caseNo: "-", party: "RUKSAAR V/S IMRAN HUSSAIN", section: "144", stage: "EVE", nextDate: "" },
+            { sn: 74, prevDate: "8/9/2026", court: "MACT-1", caseNo: "-", party: "VINOD KUMAR V/S TUFFEL AHMAD PARVAAZ", section: "-", stage: "CLAIM", nextDate: "" },
+            { sn: 75, prevDate: "-", court: "ADM", caseNo: "-", party: "STATE V/S MURARI GUPTA", section: "-", stage: "-", nextDate: "" }
+        ];
+
+        // Store active data & System State
+        let casesList = JSON.parse(localStorage.getItem('anis_nagori_cases')) || initialCaseData;
+        let filteredCases = [...casesList];
+        let sentMessageLogs = [];
+        let auditLogs = [];
+        let currentRole = 'admin'; // Options: 'admin', 'staff', 'client'
+
+        // Chart Instance References
+        let stageChartObj = null;
+        let courtChartObj = null;
+        let urgencyChartObj = null;
+
+        // Initialize App on Page Load
+        window.onload = function() {
+            populateCourtFilter();
+            renderTable(casesList);
+            updateStatistics();
+            populateMsgSelect();
+            initCharts();
+            renderPivotMatrix();
+            switchRole(currentRole);
+            logAuditAction('System Initialized', 'Loaded 75 Cause List entries');
+        };
+
+        // SAVE & PERSIST DATA
+        function persistData() {
+            localStorage.setItem('anis_nagori_cases', JSON.stringify(casesList));
+            updateStatistics();
+            populateMsgSelect();
+            updateCharts();
+            renderPivotMatrix();
+        }
+
+        // ROLE-BASED ACCESS CONTROL (RBAC) CONTROLLER
+        function switchRole(role) {
+            currentRole = role;
+            const badge = document.getElementById('roleBadge');
+            const adminDash = document.getElementById('adminStaffDashboard');
+            const clientPortal = document.getElementById('clientPortalView');
+
+            // Hide/Show Role Specific UI Elements
+            const adminOnlyElements = document.querySelectorAll('.admin-only');
+            const adminStaffElements = document.querySelectorAll('.admin-staff');
+
+            if (role === 'admin') {
+                badge.className = "text-xs bg-gold-500/20 text-gold-500 border border-gold-500/40 px-2 py-0.5 rounded font-normal";
+                badge.innerHTML = "👑 Admin Role";
+                
+                adminDash.classList.remove('hidden');
+                clientPortal.classList.add('hidden');
+
+                adminOnlyElements.forEach(el => el.classList.remove('hidden'));
+                adminStaffElements.forEach(el => el.classList.remove('hidden'));
+            } 
+            else if (role === 'staff') {
+                badge.className = "text-xs bg-sky-500/20 text-sky-300 border border-sky-500/40 px-2 py-0.5 rounded font-normal";
+                badge.innerHTML = "👨‍💼 Staff / Junior";
+
+                adminDash.classList.remove('hidden');
+                clientPortal.classList.add('hidden');
+
+                adminOnlyElements.forEach(el => el.classList.add('hidden'));
+                adminStaffElements.forEach(el => el.classList.remove('hidden'));
+            } 
+            else if (role === 'client') {
+                badge.className = "text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded font-normal";
+                badge.innerHTML = "👤 Litigant / Client View";
+
+                adminDash.classList.add('hidden');
+                clientPortal.classList.remove('hidden');
+
+                searchClientCases(); // Auto render client portal
+            }
+
+            renderTable(filteredCases); // Re-render table to toggle action buttons per role
+        }
+
+        // CLIENT PORTAL SEARCH & RENDER
+        function searchClientCases() {
+            const query = (document.getElementById('clientSearchInput').value || '').toLowerCase().trim();
+            const container = document.getElementById('clientResultsContainer');
+            const noResults = document.getElementById('clientNoResults');
+
+            container.innerHTML = '';
+
+            const matched = casesList.filter(c => {
+                if (!query) return true; // Show all if empty query
+                return (c.party && c.party.toLowerCase().includes(query)) ||
+                       (c.caseNo && c.caseNo.toLowerCase().includes(query)) ||
+                       (c.court && c.court.toLowerCase().includes(query));
+            });
+
+            if (matched.length === 0) {
+                noResults.classList.remove('hidden');
+                return;
+            } else {
+                noResults.classList.add('hidden');
+            }
+
+            matched.forEach(item => {
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-xl p-5 border border-slate-200 shadow-sm space-y-3 hover:border-gold-500/50 transition";
+                
+                const nextDateText = item.nextDate ? `<span class="bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded-md text-xs border border-emerald-200">${item.nextDate}</span>` : `<span class="bg-amber-50 text-amber-700 font-medium px-2 py-0.5 rounded text-xs border border-amber-200">Awaiting Court Order</span>`;
+
+                const msgUrl = `https://wa.me/919887642984?text=${encodeURIComponent(`Hello Advocate Anis Nagori, I need status update regarding my case: ${item.party} in Court ${item.court} (Case No. ${item.caseNo}).`)}`;
+
+                card.innerHTML = `
+                    <div class="flex items-start justify-between gap-2 border-b border-slate-100 pb-2">
+                        <div>
+                            <span class="text-xs font-semibold text-gold-600 uppercase tracking-wider">${item.court || 'Court'}</span>
+                            <h3 class="font-bold text-slate-800 text-sm mt-0.5">${item.party}</h3>
+                        </div>
+                        <span class="text-xs font-mono bg-slate-100 px-2 py-1 rounded text-slate-600 whitespace-nowrap">Case: ${item.caseNo || 'N/A'}</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div class="bg-slate-50 p-2 rounded border border-slate-100">
+                            <span class="text-slate-400 block text-[10px]">CURRENT STAGE</span>
+                            <span class="font-bold text-navy-900">${item.stage || 'N/A'}</span>
+                        </div>
+                        <div class="bg-slate-50 p-2 rounded border border-slate-100">
+                            <span class="text-slate-400 block text-[10px]">SECTION / ACT</span>
+                            <span class="font-semibold text-slate-700 font-mono">${item.section || 'N/A'}</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-1">
+                        <div class="text-xs">
+                            <span class="text-slate-400 text-[11px] block">Next Hearing Date:</span>
+                            ${nextDateText}
+                        </div>
+                        <a href="${msgUrl}" target="_blank" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow transition">
+                            <i class="fa-brands fa-whatsapp text-sm"></i> Request Update
+                        </a>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Render Table Rows (Enforcing RBAC)
+        function renderTable(data) {
+            const tbody = document.getElementById('causeListTableBody');
+            const noResults = document.getElementById('noResults');
+            const badge = document.getElementById('filtered-count-badge');
+            
+            tbody.innerHTML = '';
+            badge.innerText = `${data.length} Cases`;
+
+            if (data.length === 0) {
+                noResults.classList.remove('hidden');
+                return;
+            } else {
+                noResults.classList.add('hidden');
+            }
+
+            data.forEach((item, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition border-b border-slate-200 text-xs sm:text-sm";
+
+                // Stage Styling Badges
+                let stageBadgeClass = "bg-slate-100 text-slate-700 border-slate-300";
+                const stageUpper = (item.stage || '').toUpperCase();
+                
+                if (stageUpper.includes('EVE')) stageBadgeClass = "bg-blue-50 text-blue-700 border-blue-200 font-semibold";
+                else if (stageUpper.includes('BAHAS')) stageBadgeClass = "bg-amber-50 text-amber-700 border-amber-200 font-semibold";
+                else if (stageUpper.includes('CHARGE')) stageBadgeClass = "bg-purple-50 text-purple-700 border-purple-200 font-semibold";
+                else if (stageUpper.includes('TALBI')) stageBadgeClass = "bg-teal-50 text-teal-700 border-teal-200 font-semibold";
+                else if (stageUpper.includes('APEAL') || stageUpper.includes('APPEAL')) stageBadgeClass = "bg-rose-50 text-rose-700 border-rose-200 font-semibold";
+
+                // Role-based Action Buttons
+                let actionBtns = '';
+                if (currentRole === 'admin' || currentRole === 'staff') {
+                    actionBtns = `
+                        <div class="flex items-center justify-center gap-1.5">
+                            <button onclick="openEditModal(${item.sn})" title="Edit Case Details" class="p-1.5 rounded-md hover:bg-blue-100 text-blue-600 transition">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button onclick="openQuickMsg(${item.sn})" title="Send WhatsApp Message" class="p-1.5 rounded-md hover:bg-emerald-100 text-emerald-600 transition">
+                                <i class="fa-brands fa-whatsapp"></i>
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    actionBtns = `<span class="text-slate-400 text-xs italic">Read-Only</span>`;
+                }
+
+                tr.innerHTML = `
+                    <td class="py-2.5 px-3 text-center font-bold text-slate-600">${item.sn}</td>
+                    <td class="py-2.5 px-3 text-slate-500 whitespace-nowrap">${item.prevDate || '-'}</td>
+                    <td class="py-2.5 px-3 font-semibold text-navy-900 whitespace-nowrap">${item.court || '-'}</td>
+                    <td class="py-2.5 px-3 text-slate-600 font-mono text-xs whitespace-nowrap">${item.caseNo || '-'}</td>
+                    <td class="py-2.5 px-4 font-medium text-slate-800">${item.party || '-'}</td>
+                    <td class="py-2.5 px-3 text-center font-mono text-xs text-slate-600">${item.section || '-'}</td>
+                    <td class="py-2.5 px-3 text-center">
+                        <span class="inline-block px-2 py-0.5 text-xs rounded border ${stageBadgeClass}">
+                            ${item.stage || '-'}
+                        </span>
+                    </td>
+                    <td class="py-2.5 px-3 text-center font-bold text-emerald-700 bg-emerald-50/50 whitespace-nowrap">
+                        ${item.nextDate ? `<span class="px-2 py-0.5 rounded bg-emerald-100 border border-emerald-300">${item.nextDate}</span>` : '<span class="text-slate-300 font-normal">Pending</span>'}
+                    </td>
+                    <td class="py-2.5 px-3 text-center no-print">
+                        ${actionBtns}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // AUDIT TRAIL LOGGING ENGINE
+        function logAuditAction(action, details) {
+            const container = document.getElementById('auditLogContainer');
+            if (auditLogs.length === 0) container.innerHTML = '';
+
+            const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const roleTag = currentRole === 'admin' ? '[👑 ADMIN]' : '[👨‍💼 STAFF]';
+            const logMsg = `${timeStr} ${roleTag} ${action}: ${details}`;
+            
+            auditLogs.unshift(logMsg);
+
+            const div = document.createElement('div');
+            div.className = "text-slate-700 border-b border-slate-200 pb-1 last:border-0";
+            div.innerHTML = `<span class="text-amber-700 font-bold mr-1.5">${timeStr}</span> <span class="font-semibold text-indigo-700">${roleTag}</span> ${action} - <span class="text-slate-600">${details}</span>`;
+            container.prepend(div);
+        }
+
+        // PERMISSIONS MODAL CONTROLLER
+        function openPermissionsModal() {
+            document.getElementById('permissionsModal').classList.remove('hidden');
+        }
+
+        function closePermissionsModal() {
+            document.getElementById('permissionsModal').classList.add('hidden');
+        }
+
+        // Update Summary Dashboard Counters
+        function updateStatistics() {
+            document.getElementById('stat-total').innerText = casesList.length;
+            
+            let eveCount = 0, bahasCount = 0, chargeCount = 0, talbiCount = 0, noDateCount = 0;
+
+            casesList.forEach(c => {
+                const st = (c.stage || '').toUpperCase();
+                if (st.includes('EVE')) eveCount++;
+                if (st.includes('BAHAS')) bahasCount++;
+                if (st.includes('CHARGE')) chargeCount++;
+                if (st.includes('TALBI')) talbiCount++;
+                if (!c.nextDate || c.nextDate === '' || c.nextDate === '-') noDateCount++;
+            });
+
+            document.getElementById('stat-eve').innerText = eveCount;
+            document.getElementById('stat-bahas').innerText = bahasCount;
+            document.getElementById('stat-charge').innerText = chargeCount;
+            document.getElementById('stat-talbi').innerText = talbiCount;
+            document.getElementById('stat-nodate').innerText = noDateCount;
+        }
+
+        // Populate Court Options Dropdown dynamically
+        function populateCourtFilter() {
+            const courts = [...new Set(casesList.map(c => c.court).filter(Boolean))].sort();
+            const select = document.getElementById('courtFilter');
+            select.innerHTML = '<option value="">All Courts (सभी न्यायालय)</option>';
+            courts.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.innerText = c;
+                select.appendChild(opt);
+            });
+        }
+
+        // Search & Filter Handler
+        function filterCases() {
+            const query = document.getElementById('searchInput').value.toLowerCase().trim();
+            const court = document.getElementById('courtFilter').value;
+            const stage = document.getElementById('stageFilter').value;
+
+            filteredCases = casesList.filter(item => {
+                const matchesSearch = !query || 
+                    (item.party && item.party.toLowerCase().includes(query)) ||
+                    (item.caseNo && item.caseNo.toLowerCase().includes(query)) ||
+                    (item.section && item.section.toLowerCase().includes(query)) ||
+                    (item.sn && item.sn.toString().includes(query));
+
+                const matchesCourt = !court || item.court === court;
+                const matchesStage = !stage || (item.stage && item.stage.toUpperCase().includes(stage.toUpperCase()));
+
+                return matchesSearch && matchesCourt && matchesStage;
+            });
+
+            renderTable(filteredCases);
+        }
+
+        function resetFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('courtFilter').value = '';
+            document.getElementById('stageFilter').value = '';
+            document.getElementById('activeShortlistLabel').innerText = "Displaying: All Cases";
+            filteredCases = [...casesList];
+            renderTable(filteredCases);
+        }
+
+        // DYNAMIC PRESET FILTER SHORTLISTS
+        function applyPresetFilter(type) {
+            resetFilters();
+            const label = document.getElementById('activeShortlistLabel');
+
+            if (type === 'all') {
+                label.innerText = "Displaying: All Cases";
+                filteredCases = [...casesList];
+            } else if (type === 'critical') {
+                label.innerText = "Shortlist: Critical Stages (DECISION / BAHAS / CHARGE)";
+                filteredCases = casesList.filter(c => {
+                    const st = (c.stage || '').toUpperCase();
+                    return st.includes('DECISION') || st.includes('BAHAS') || st.includes('CHARGE');
+                });
+            } else if (type === 'highcourt') {
+                label.innerText = "Shortlist: High Priority Courts (POCSO / NDPS / DJ)";
+                filteredCases = casesList.filter(c => {
+                    const ct = (c.court || '').toUpperCase();
+                    return ct.includes('POCSO') || ct.includes('NDPS') || ct === 'DJ';
+                });
+            } else if (type === 'nodate') {
+                label.innerText = "Shortlist: Pending Next Hearing Date";
+                filteredCases = casesList.filter(c => !c.nextDate || c.nextDate === '' || c.nextDate === '-');
+            } else if (type === 'hasdate') {
+                label.innerText = "Shortlist: Next Date Assigned";
+                filteredCases = casesList.filter(c => c.nextDate && c.nextDate !== '' && c.nextDate !== '-');
+            } else if (type === 'ni') {
+                label.innerText = "Shortlist: NI Act 138 Cases";
+                filteredCases = casesList.filter(c => (c.court || '').toUpperCase().startsWith('NI') || (c.section || '').includes('138'));
+            } else if (type === 'eve') {
+                label.innerText = "Shortlist: Evidence Stage (EVE)";
+                filteredCases = casesList.filter(c => (c.stage || '').toUpperCase().includes('EVE'));
+            } else if (type === 'bahas') {
+                label.innerText = "Shortlist: Arguments Stage (BAHAS)";
+                filteredCases = casesList.filter(c => (c.stage || '').toUpperCase().includes('BAHAS'));
+            } else if (type === 'charge') {
+                label.innerText = "Shortlist: Charge Framing";
+                filteredCases = casesList.filter(c => (c.stage || '').toUpperCase().includes('CHARGE'));
+            } else if (type === 'talbi') {
+                label.innerText = "Shortlist: Summons / Talbi";
+                filteredCases = casesList.filter(c => (c.stage || '').toUpperCase().includes('TALBI'));
+            }
+
+            renderTable(filteredCases);
+        }
+
+        // TOGGLE ANALYTICS TAB
+        function toggleAnalyticsView(tab) {
+            const chartsDiv = document.getElementById('analyticsChartsView');
+            const pivotDiv = document.getElementById('analyticsPivotView');
+            const btnCharts = document.getElementById('btnTabCharts');
+            const btnPivot = document.getElementById('btnTabPivot');
+
+            if (tab === 'charts') {
+                chartsDiv.classList.remove('hidden');
+                pivotDiv.classList.add('hidden');
+                btnCharts.className = "px-3 py-1.5 text-xs font-semibold rounded-lg bg-navy-900 text-white transition";
+                btnPivot.className = "px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition";
+            } else {
+                chartsDiv.classList.add('hidden');
+                pivotDiv.classList.remove('hidden');
+                btnPivot.className = "px-3 py-1.5 text-xs font-semibold rounded-lg bg-navy-900 text-white transition";
+                btnCharts.className = "px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition";
+            }
+        }
+
+        // GRAPHICAL STATUS CHARTS SETUP (CHART.JS)
+        function initCharts() {
+            const ctxStage = document.getElementById('stageChart').getContext('2d');
+            const ctxCourt = document.getElementById('courtChart').getContext('2d');
+            const ctxUrgency = document.getElementById('urgencyChart').getContext('2d');
+
+            stageChartObj = new Chart(ctxStage, {
+                type: 'doughnut',
+                data: getStageChartData(),
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } }
+            });
+
+            courtChartObj = new Chart(ctxCourt, {
+                type: 'bar',
+                data: getCourtChartData(),
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+            });
+
+            urgencyChartObj = new Chart(ctxUrgency, {
+                type: 'pie',
+                data: getUrgencyChartData(),
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } }
+            });
+        }
+
+        function updateCharts() {
+            if (!stageChartObj || !courtChartObj || !urgencyChartObj) return;
+            stageChartObj.data = getStageChartData();
+            stageChartObj.update();
+
+            courtChartObj.data = getCourtChartData();
+            courtChartObj.update();
+
+            urgencyChartObj.data = getUrgencyChartData();
+            urgencyChartObj.update();
+        }
+
+        function getStageChartData() {
+            const counts = {};
+            casesList.forEach(c => {
+                const st = c.stage || 'OTHER';
+                counts[st] = (counts[st] || 0) + 1;
+            });
+            return {
+                labels: Object.keys(counts),
+                datasets: [{
+                    data: Object.values(counts),
+                    backgroundColor: ['#2563eb', '#d97706', '#9333ea', '#0d9488', '#e11d48', '#64748b', '#059669', '#d946ef']
+                }]
+            };
+        }
+
+        function getCourtChartData() {
+            const counts = {};
+            casesList.forEach(c => {
+                const ct = c.court || 'UNKNOWN';
+                counts[ct] = (counts[ct] || 0) + 1;
+            });
+            const sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]).slice(0, 8);
+            return {
+                labels: sorted.map(x => x[0]),
+                datasets: [{
+                    label: 'Cases Count',
+                    data: sorted.map(x => x[1]),
+                    backgroundColor: '#102a43'
+                }]
+            };
+        }
+
+        function getUrgencyChartData() {
+            let nextDateSet = 0, pendingNextDate = 0;
+            casesList.forEach(c => {
+                if (c.nextDate && c.nextDate !== '' && c.nextDate !== '-') nextDateSet++;
+                else pendingNextDate++;
+            });
+            return {
+                labels: ['Next Date Fixed', 'Next Date Pending'],
+                datasets: [{
+                    data: [nextDateSet, pendingNextDate],
+                    backgroundColor: ['#10b981', '#f59e0b']
+                }]
+            };
+        }
+
+        // DYNAMIC PIVOT TABLE MATRIX ENGINE
+        function renderPivotMatrix() {
+            const rowAttr = document.getElementById('pivotRowAxis').value;
+            const colAttr = document.getElementById('pivotColAxis').value;
+            const metric = document.getElementById('pivotMetric').value;
+
+            function getValue(item, attr) {
+                if (attr === 'hasNextDate') {
+                    return (item.nextDate && item.nextDate !== '' && item.nextDate !== '-') ? 'Date Set' : 'Pending Date';
+                }
+                return item[attr] || 'N/A';
+            }
+
+            const rowValues = [...new Set(casesList.map(c => getValue(c, rowAttr)))].sort();
+            const colValues = [...new Set(casesList.map(c => getValue(c, colAttr)))].sort();
+
+            const thead = document.getElementById('pivotTableHeader');
+            const tbody = document.getElementById('pivotTableBody');
+
+            // Header
+            let headHtml = `<tr><th class="py-2 px-3 border border-navy-800 bg-navy-950 font-semibold">${rowAttr.toUpperCase()} \\ ${colAttr.toUpperCase()}</th>`;
+            colValues.forEach(col => {
+                headHtml += `<th class="py-2 px-2 text-center border border-navy-800 whitespace-nowrap">${col}</th>`;
+            });
+            headHtml += `<th class="py-2 px-3 text-center border border-navy-800 bg-navy-950 font-bold">Total</th></tr>`;
+            thead.innerHTML = headHtml;
+
+            // Body
+            let bodyHtml = '';
+            rowValues.forEach(rVal => {
+                bodyHtml += `<tr><td class="py-1.5 px-3 font-semibold text-slate-800 bg-slate-50 border border-slate-200">${rVal}</td>`;
+                let rowSum = 0;
+
+                colValues.forEach(cVal => {
+                    const matches = casesList.filter(c => getValue(c, rowAttr) === rVal && getValue(c, colAttr) === cVal);
+                    const count = matches.length;
+                    rowSum += count;
+
+                    let displayVal = count;
+                    if (metric === 'percentage') {
+                        displayVal = casesList.length ? `${((count / casesList.length) * 100).toFixed(1)}%` : '0%';
+                    }
+
+                    const bgClass = count > 0 ? 'hover:bg-amber-100 cursor-pointer text-navy-900 font-bold' : 'text-slate-300';
+                    bodyHtml += `<td onclick="drilldownPivot('${rowAttr}', '${rVal.replace(/'/g, "\\'")}', '${colAttr}', '${cVal.replace(/'/g, "\\'")}')" class="py-1.5 px-2 text-center border border-slate-200 ${bgClass}">${displayVal}</td>`;
+                });
+
+                let totalDisplay = rowSum;
+                if (metric === 'percentage') {
+                    totalDisplay = `${((rowSum / casesList.length) * 100).toFixed(1)}%`;
+                }
+
+                bodyHtml += `<td class="py-1.5 px-3 text-center font-bold bg-slate-100 border border-slate-200">${totalDisplay}</td></tr>`;
+            });
+
+            tbody.innerHTML = bodyHtml;
+        }
+
+        // PIVOT DRILLDOWN SHORTLISTING
+        function drilldownPivot(rowAttr, rowVal, colAttr, colVal) {
+            function getValue(item, attr) {
+                if (attr === 'hasNextDate') {
+                    return (item.nextDate && item.nextDate !== '' && item.nextDate !== '-') ? 'Date Set' : 'Pending Date';
+                }
+                return item[attr] || 'N/A';
+            }
+
+            resetFilters();
+            filteredCases = casesList.filter(c => getValue(c, rowAttr) === rowVal && getValue(c, colAttr) === colVal);
+            document.getElementById('activeShortlistLabel').innerText = `Matrix Shortlist: ${rowAttr.toUpperCase()} = "${rowVal}" & ${colAttr.toUpperCase()} = "${colVal}"`;
+            renderTable(filteredCases);
+        }
+
+        // MODAL MANAGEMENT - EDIT / ADD
+        function openEditModal(sn) {
+            const item = casesList.find(c => c.sn === sn);
+            if (!item) return;
+
+            document.getElementById('modalTitle').innerText = `Edit Case S.N. ${item.sn}`;
+            document.getElementById('editIndex').value = item.sn;
+            document.getElementById('editSn').value = item.sn;
+            document.getElementById('editPrevDate').value = item.prevDate || '';
+            document.getElementById('editCourt').value = item.court || '';
+            document.getElementById('editCaseNo').value = item.caseNo || '';
+            document.getElementById('editParty').value = item.party || '';
+            document.getElementById('editSection').value = item.section || '';
+            document.getElementById('editStage').value = item.stage || 'EVE';
+            document.getElementById('editNextDate').value = item.nextDate || '';
+
+            // Restrict field editing for Staff role if needed
+            const btnDelete = document.getElementById('btnDeleteCase');
+            if (currentRole === 'admin') {
+                btnDelete.style.display = 'block';
+            } else {
+                btnDelete.style.display = 'none';
+            }
+
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        function openNewCaseModal() {
+            if (currentRole !== 'admin') {
+                alert('Only Admin can add new cases to system.');
+                return;
+            }
+
+            document.getElementById('modalTitle').innerText = 'Add New Case Entry';
+            document.getElementById('editIndex').value = '-1';
+            document.getElementById('editSn').value = casesList.length ? Math.max(...casesList.map(c => c.sn)) + 1 : 1;
+            document.getElementById('editPrevDate').value = "26/10/2026";
+            document.getElementById('editCourt').value = '';
+            document.getElementById('editCaseNo').value = '';
+            document.getElementById('editParty').value = '';
+            document.getElementById('editSection').value = '';
+            document.getElementById('editStage').value = 'EVE';
+            document.getElementById('editNextDate').value = '';
+
+            document.getElementById('btnDeleteCase').style.display = 'none';
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+        }
+
+        function autoCalculateNextDate() {
+            const today = new Date();
+            today.setDate(today.getDate() + 14); // Default 2 weeks interval
+            const dd = String(today.getDate()).padStart(2, '0');
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const yyyy = today.getFullYear();
+            document.getElementById('editNextDate').value = `${dd}/${mm}/${yyyy}`;
+        }
+
+        function saveCase(e) {
+            e.preventDefault();
+            const editSnVal = parseInt(document.getElementById('editIndex').value);
+            const sn = parseInt(document.getElementById('editSn').value);
+
+            const updatedObj = {
+                sn: sn,
+                prevDate: document.getElementById('editPrevDate').value,
+                court: document.getElementById('editCourt').value.toUpperCase(),
+                caseNo: document.getElementById('editCaseNo').value,
+                party: document.getElementById('editParty').value.toUpperCase(),
+                section: document.getElementById('editSection').value,
+                stage: document.getElementById('editStage').value,
+                nextDate: document.getElementById('editNextDate').value
+            };
+
+            if (editSnVal === -1) {
+                // New Case
+                casesList.push(updatedObj);
+                logAuditAction('Added New Case', `S.N. ${sn} - ${updatedObj.party.substring(0, 30)}`);
+            } else {
+                // Update Existing
+                const index = casesList.findIndex(c => c.sn === editSnVal);
+                if (index !== -1) {
+                    casesList[index] = updatedObj;
+                    logAuditAction('Updated Case Details', `S.N. ${sn} Next Date: ${updatedObj.nextDate || 'None'}`);
+                }
+            }
+
+            persistData();
+            populateCourtFilter();
+            filterCases();
+            closeEditModal();
+        }
+
+        function deleteCaseFromModal() {
+            if (currentRole !== 'admin') {
+                alert('Only Admin can delete case records.');
+                return;
+            }
+
+            const sn = parseInt(document.getElementById('editIndex').value);
+            if (confirm(`Are you sure you want to delete Case S.N. ${sn}?`)) {
+                casesList = casesList.filter(c => c.sn !== sn);
+                logAuditAction('Deleted Case Record', `S.N. ${sn}`);
+                persistData();
+                populateCourtFilter();
+                filterCases();
+                closeEditModal();
+            }
+        }
+
+        // MESSAGING & NOTIFICATION SYSTEM
+        function openMsgModal() {
+            document.getElementById('msgModal').classList.remove('hidden');
+        }
+
+        function closeMsgModal() {
+            document.getElementById('msgModal').classList.add('hidden');
+        }
+
+        function openQuickMsg(sn) {
+            openMsgModal();
+            const select = document.getElementById('msgCaseSelect');
+            select.value = sn;
+            autoFillMsgTemplate();
+        }
+
+        function populateMsgSelect() {
+            const select = document.getElementById('msgCaseSelect');
+            select.innerHTML = '<option value="">-- Choose a Case from Today\'s List --</option>';
+            casesList.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.sn;
+                opt.innerText = `[S.N. ${c.sn}] ${c.court} - ${c.party.substring(0, 45)}...`;
+                select.appendChild(opt);
+            });
+        }
+
+        function autoFillMsgTemplate() {
+            const sn = parseInt(document.getElementById('msgCaseSelect').value);
+            if (!sn) return;
+
+            const caseObj = casesList.find(c => c.sn === sn);
+            if (!caseObj) return;
+
+            applyMsgTemplate(caseObj);
+        }
+
+        function applyMsgTemplate(givenCaseObj = null) {
+            const sn = parseInt(document.getElementById('msgCaseSelect').value);
+            const caseObj = givenCaseObj || casesList.find(c => c.sn === sn) || {
+                party: "[प्रकरण का नाम]",
+                court: "[न्यायालय]",
+                caseNo: "[केस नंबर]",
+                nextDate: "[आगामी तारीख]"
+            };
+
+            const tplType = document.getElementById('msgTemplateSelect').value;
+            const bodyArea = document.getElementById('msgBody');
+
+            const nextDt = caseObj.nextDate || "[तारीख निर्धारित की जानी है]";
+
+            if (tplType === 'next_date') {
+                bodyArea.value = `नमस्ते,\nआपके न्यायालय प्रकरण (${caseObj.party}) कोर्ट ${caseObj.court} (केस नं. ${caseObj.caseNo}) में आज की सुनवाई के पश्चात् आगामी तारीख पेशी: ${nextDt} नियत की गई है।\n\nकार्यालय: अनीस नागोरी, अधिवक्ता\nमो. 9887642984`;
+            } else if (tplType === 'evidence_req') {
+                bodyArea.value = `महत्वपूर्ण सूचना:\nआपके प्रकरण (${caseObj.party}) में कोर्ट ${caseObj.court} द्वारा गवाही/साक्ष्य (EVE) हेतु तारीख: ${nextDt} तय की गई है। कृपया समय पर कोर्ट में उपस्थित रहें।\n\n- अनीस नागोरी, अधिवक्ता (मो. 9887642984)`;
+            } else if (tplType === 'urgent_call') {
+                bodyArea.value = `आवश्यक सूचना:\nआपके केस (${caseObj.party}) के सम्बन्ध में आवश्यक विचार-विमर्श हेतु अधिवक्ता कार्यालय में संपर्क करें।\n\nअनीस नागोरी, एडवोकेट\nमो. 9887642984`;
+            } else {
+                bodyArea.value = `श्रीमान,\nमामला: ${caseObj.party}\nकोर्ट: ${caseObj.court}\n\n[यहाँ अपना सन्देश लिखें]`;
+            }
+        }
+
+        function sendWhatsApp() {
+            const mobile = document.getElementById('msgMobile').value.trim();
+            const body = encodeURIComponent(document.getElementById('msgBody').value);
+
+            if (!body) {
+                alert('Message content cannot be empty.');
+                return;
+            }
+
+            logMessageSent('WhatsApp', mobile);
+            logAuditAction('Sent WhatsApp Update', `To: ${mobile || 'Client'}`);
+            const url = mobile ? `https://wa.me/91${mobile}?text=${body}` : `https://wa.me/?text=${body}`;
+            window.open(url, '_blank');
+        }
+
+        function sendSMS() {
+            const mobile = document.getElementById('msgMobile').value.trim();
+            const body = encodeURIComponent(document.getElementById('msgBody').value);
+
+            if (!mobile) {
+                alert('Please enter a mobile number to send SMS.');
+                return;
+            }
+
+            logMessageSent('SMS', mobile);
+            logAuditAction('Sent SMS Update', `To: ${mobile}`);
+            window.open(`sms:${mobile}?body=${body}`, '_blank');
+        }
+
+        function copyMsgToClipboard() {
+            const text = document.getElementById('msgBody').value;
+            const temp = document.createElement('textarea');
+            temp.value = text;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+            alert('Message copied to clipboard!');
+        }
+
+        function logMessageSent(type, recipient) {
+            const container = document.getElementById('msgLogContainer');
+            if (sentMessageLogs.length === 0) container.innerHTML = '';
+
+            const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const logEntry = `[${timeStr}] Sent via ${type} to ${recipient || 'Client'}`;
+            sentMessageLogs.unshift(logEntry);
+
+            const div = document.createElement('div');
+            div.className = "flex items-center justify-between text-xs py-1 border-b border-slate-200 last:border-0";
+            div.innerHTML = `<span><i class="fa-regular fa-paper-plane text-emerald-600 mr-1.5"></i> ${logEntry}</span> <span class="text-emerald-700 font-semibold">Sent</span>`;
+            container.prepend(div);
+        }
+
+        // BACKUP & RESTORE JSON DATA
+        function exportJSONBackup() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(casesList, null, 2));
+            const link = document.createElement('a');
+            link.setAttribute("href", dataStr);
+            link.setAttribute("download", `Anis_Nagori_Cases_Backup_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            logAuditAction('Exported Data Backup', 'JSON Format');
+        }
+
+        function importJSONBackup(event) {
+            if (currentRole !== 'admin') {
+                alert('Only Admin can import database backups.');
+                return;
+            }
+
+            const fileReader = new FileReader();
+            fileReader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (Array.isArray(importedData)) {
+                        casesList = importedData;
+                        persistData();
+                        populateCourtFilter();
+                        resetFilters();
+                        logAuditAction('Restored Data Backup', `Imported ${importedData.length} records`);
+                        alert('Data successfully restored from JSON file!');
+                    } else {
+                        alert('Invalid JSON format.');
+                    }
+                } catch(err) {
+                    alert('Error reading JSON file.');
+                }
+            };
+            fileReader.readAsText(event.target.files[0]);
+        }
+
+        // EXPORT TO EXCEL / CSV
+        function exportCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "S.N.,Previous Date,Name of Court,Case No,Party VS Case,Section,Stage,Next Date\n";
+
+            filteredCases.forEach(row => {
+                const partyEscaped = `"${row.party.replace(/"/g, '""')}"`;
+                csvContent += `${row.sn},"${row.prevDate}","${row.court}","${row.caseNo}",${partyEscaped},"${row.section}","${row.stage}","${row.nextDate}"\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Cause_List_Anis_Nagori_26_OCT_2026.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // EXPORT TO PDF USING JSPDF
+        function exportPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+            // Header Title
+            doc.setFontSize(16);
+            doc.setFont('helvetica', 'bold');
+            doc.text("ANIS NAGORI ADVOCATE", 105, 14, { align: "center" });
+
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            doc.text("Mobile: 9887642984, 9887642980", 105, 19, { align: "center" });
+            doc.text("DAILY CAUSE LIST - 26-OCT-2026 (MONDAY)", 105, 24, { align: "center" });
+
+            // Prepare Table Data
+            const tableHeaders = [["S.N.", "Prev Date", "Court", "Case No", "Party VS Case", "Sec", "Stage", "Next Date"]];
+            const tableRows = filteredCases.map(c => [
+                c.sn,
+                c.prevDate || '-',
+                c.court || '-',
+                c.caseNo || '-',
+                c.party || '-',
+                c.section || '-',
+                c.stage || '-',
+                c.nextDate || '-'
+            ]);
+
+            doc.autoTable({
+                head: tableHeaders,
+                body: tableRows,
+                startY: 28,
+                theme: 'grid',
+                styles: { fontSize: 7, cellPadding: 1.5 },
+                headStyles: { fillColor: [11, 27, 43], textColor: [255, 255, 255], fontStyle: 'bold' },
+                columnStyles: {
+                    0: { cellWidth: 10, halign: 'center' },
+                    1: { cellWidth: 18 },
+                    2: { cellWidth: 16 },
+                    3: { cellWidth: 18 },
+                    4: { cellWidth: 70 },
+                    5: { cellWidth: 14, halign: 'center' },
+                    6: { cellWidth: 20, halign: 'center' },
+                    7: { cellWidth: 20, halign: 'center' }
+                }
+            });
+
+            doc.save("Advocate_Anis_Nagori_Cause_List.pdf");
+        }
+    </script>
+</body>
+</html>
